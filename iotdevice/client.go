@@ -436,3 +436,24 @@ func (c *Client) DeleteModule(ctx context.Context, m *iotservice.Module) error {
 
 	return c.tr.DeleteModule(ctx, m)
 }
+
+func accessKey(auth *iotservice.Authentication, secondary bool) (string, error) {
+	if auth.Type != iotservice.AuthSAS {
+		return "", fmt.Errorf("invalid authentication type: %s", auth.Type)
+	}
+	if secondary {
+		return auth.SymmetricKey.SecondaryKey, nil
+	}
+	return auth.SymmetricKey.PrimaryKey, nil
+}
+
+// DeviceConnectionString builds a connection string for the given module.
+func (c *Client) ModuleConnectionString(module *iotservice.Module, secondary bool) (string, error) {
+	key, err := accessKey(module.Authentication, secondary)
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("HostName=%s;DeviceId=%s;ModuleId=%s;SharedAccessKey=%s",
+		c.creds.GetHostName(), module.DeviceID, module.ModuleID, key,
+	), nil
+}

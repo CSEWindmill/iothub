@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/amenzhinsky/iothub/iotdevice/transport/http"
+	"github.com/amenzhinsky/iothub/iotdevice/transport/mqtt"
 	"github.com/amenzhinsky/iothub/iotservice"
 )
 
@@ -125,5 +126,33 @@ func TestUpdateModule(t *testing.T) {
 
 	if updatedModule.Authentication.Type != iotservice.AuthSAS {
 		t.Errorf("authentication type = `%s`, want `%s`", updatedModule.Authentication.Type, iotservice.AuthSAS)
+	}
+}
+
+func TestModuleConnectionString(t *testing.T) {
+	c := newDeviceClient(t)
+	module := newModule(t, c)
+	module.Authentication.Type = iotservice.AuthSAS
+	module, err := c.UpdateModule(context.Background(), module)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	mcs, err := c.ModuleConnectionString(module, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	mc, err := NewModuleFromConnectionString(mqtt.NewModuleTransport(), mcs, c.creds.GetGateway(), module.GenerationID, c.creds.GetWorkloadURI(), false)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err = mc.Connect(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+
+	if err = mc.SendEvent(context.Background(), []byte("hello")); err != nil {
+		t.Fatal(err)
 	}
 }
