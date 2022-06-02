@@ -10,7 +10,7 @@ import (
 	"github.com/amenzhinsky/iothub/iotservice"
 )
 
-func newModuleClient(t *testing.T, sc *iotservice.Client) *ModuleClient {
+func newModuleClient(t *testing.T, sc *iotservice.Client) ModuleClient {
 	t.Helper()
 
 	device := iotdevicetest.NewDevice(t, sc)
@@ -48,8 +48,8 @@ func TestSubscribeTwinUpdates(t *testing.T) {
 	}
 
 	twin, err := sc.UpdateModuleTwin(context.Background(), &iotservice.ModuleTwin{
-		DeviceID: mc.creds.DeviceID(),
-		ModuleID: mc.creds.ModuleID(),
+		DeviceID: mc.DeviceID(),
+		ModuleID: mc.ModuleID(),
 		Properties: &iotservice.Properties{
 			Desired: map[string]interface{}{
 				"hw": "1.12",
