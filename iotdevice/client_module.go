@@ -1,7 +1,11 @@
+// Mock generation command:
+// mockgen -source=./iotdevice/client_module.go -destination=./iotdevice/mock/client_module_mock.go -package=mock
+
 package iotdevice
 
 import (
 	"context"
+	"io"
 
 	"github.com/amenzhinsky/iothub/common"
 	"github.com/amenzhinsky/iothub/iotdevice/transport"
@@ -10,9 +14,29 @@ import (
 
 // structs
 
+type ModuleClient interface {
+	ModuleID() string
+	GenerationID() string
+	Gateway() string
+	Broker() string
+	DeviceID() string
+	Connect(ctx context.Context) error
+	SubscribeEvents(ctx context.Context) (*EventSub, error)
+	UnsubscribeEvents(sub *EventSub)
+	RegisterMethod(ctx context.Context, name string, fn DirectMethodHandler) error
+	UnregisterMethod(name string)
+	UpdateTwinState(ctx context.Context, s TwinState) (int, error)
+	RetrieveTwinState(ctx context.Context) (desired, reported TwinState, err error)
+	SubscribeTwinUpdates(ctx context.Context) (*TwinStateSub, error)
+	UnsubscribeTwinUpdates(sub *TwinStateSub)
+	SendEvent(ctx context.Context, payload []byte, opts ...SendOption) error
+	UploadFile(ctx context.Context, blobName string, file io.Reader, size int64) error
+	Close() error
+}
+
 // ModuleClient is iothub device client adapted for use with a module connection
-type ModuleClient struct {
-	Client
+type moduleClient struct {
+	deviceClient
 }
 
 // functions
@@ -23,7 +47,7 @@ func NewModuleFromConnectionString(
 	cs, gatewayHostName, moduleGenerationID, workloadURI string,
 	edge bool,
 	opts ...ClientOption,
-) (*ModuleClient, error) {
+) (ModuleClient, error) {
 	creds, err := ParseModuleConnectionString(cs)
 	if err != nil {
 		return nil, err
@@ -41,7 +65,7 @@ func NewModuleFromEnvironment(
 	transport transport.Transport,
 	edge bool,
 	opts ...ClientOption,
-) (*ModuleClient, error) {
+) (ModuleClient, error) {
 	creds, err := ParseModuleEnvironmentVariables()
 	if err != nil {
 		return nil, err
@@ -91,9 +115,9 @@ func ParseModuleConnectionString(cs string) (*ModuleSharedAccessKeyCredentials, 
 // NewModule returns a new ModuleClient struct
 func NewModule(
 	transport transport.Transport, creds transport.Credentials, opts ...ClientOption,
-) (*ModuleClient, error) {
-	c := &ModuleClient{
-		Client: Client{
+) (ModuleClient, error) {
+	c := &moduleClient{
+		deviceClient: deviceClient{
 			tr:    transport,
 			creds: creds,
 
@@ -108,7 +132,7 @@ func NewModule(
 	}
 
 	for _, opt := range opts {
-		opt(&c.Client)
+		opt(&c.deviceClient)
 	}
 
 	// transport uses the same logger as the client
@@ -119,28 +143,28 @@ func NewModule(
 // methods
 
 // ModuleID returns module ID property from client's credential property
-func (c *ModuleClient) ModuleID() string {
+func (c *moduleClient) ModuleID() string {
 	return c.creds.GetModuleID()
 }
 
 // GenerationID returns generation ID property from client's credential property
-func (c *ModuleClient) GenerationID() string {
+func (c *moduleClient) GenerationID() string {
 	return c.creds.GetGenerationID()
 }
 
 // Gateway returns gateway hostname property from client's credential property
-func (c *ModuleClient) Gateway() string {
+func (c *moduleClient) Gateway() string {
 	return c.creds.GetGateway()
 }
 
 // Broker returns broker property from client's credential property
-func (c *ModuleClient) Broker() string {
+func (c *moduleClient) Broker() string {
 	return c.creds.GetBroker()
 }
 
 // SubscribeTwinUpdates subscribes to module desired state changes.
 // It returns a channel to read the twin updates from.
-func (c *ModuleClient) SubscribeTwinUpdates(ctx context.Context) (*TwinStateSub, error) {
+func (c *moduleClient) SubscribeTwinUpdates(ctx context.Context) (*TwinStateSub, error) {
 	if err := c.checkConnection(ctx); err != nil {
 		return nil, err
 	}
@@ -153,6 +177,6 @@ func (c *ModuleClient) SubscribeTwinUpdates(ctx context.Context) (*TwinStateSub,
 }
 
 // UnsubscribeTwinUpdates unsubscribes the given handler from twin state updates.
-func (c *ModuleClient) UnsubscribeTwinUpdates(sub *TwinStateSub) {
+func (c *moduleClient) UnsubscribeTwinUpdates(sub *TwinStateSub) {
 	c.tsMux.unsub(sub)
 }

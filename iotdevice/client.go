@@ -1,3 +1,6 @@
+// Mock generation command:
+// mockgen -source=./iotdevice/client.go -destination=./iotdevice/mock/client_mock.go -package=mock
+
 package iotdevice
 
 import (
@@ -18,11 +21,11 @@ import (
 )
 
 // ClientOption is a client configuration option.
-type ClientOption func(c *Client)
+type ClientOption func(c *deviceClient)
 
 // WithLogger changes default logger, default it an stdout logger.
 func WithLogger(l logger.Logger) ClientOption {
-	return func(c *Client) {
+	return func(c *deviceClient) {
 		c.logger = l
 	}
 }
@@ -30,7 +33,7 @@ func WithLogger(l logger.Logger) ClientOption {
 // NewFromConnectionString creates a device client based on the given connection string.
 func NewFromConnectionString(
 	transport transport.Transport, cs string, opts ...ClientOption,
-) (*Client, error) {
+) (Client, error) {
 	creds, err := ParseConnectionString(cs)
 	if err != nil {
 		return nil, err
@@ -57,7 +60,7 @@ func NewFromX509Cert(
 	transport transport.Transport,
 	deviceID, hostName string, crt *tls.Certificate,
 	opts ...ClientOption,
-) (*Client, error) {
+) (Client, error) {
 	return New(transport, &X509Credentials{
 		DeviceID:    deviceID,
 		HostName:    hostName,
@@ -69,7 +72,7 @@ func NewFromX509FromFile(
 	transport transport.Transport,
 	deviceID, hostname, certFile, keyFile string,
 	opts ...ClientOption,
-) (*Client, error) {
+) (Client, error) {
 	crt, err := tls.LoadX509KeyPair(certFile, keyFile)
 	if err != nil {
 		return nil, err
@@ -80,8 +83,8 @@ func NewFromX509FromFile(
 // New returns new iothub client.
 func New(
 	transport transport.Transport, creds transport.Credentials, opts ...ClientOption,
-) (*Client, error) {
-	c := &Client{
+) (Client, error) {
+	c := &deviceClient{
 		tr:    transport,
 		creds: creds,
 
@@ -103,8 +106,24 @@ func New(
 	return c, nil
 }
 
+type Client interface {
+	DeviceID() string
+	Connect(ctx context.Context) error
+	SubscribeEvents(ctx context.Context) (*EventSub, error)
+	UnsubscribeEvents(sub *EventSub)
+	RegisterMethod(ctx context.Context, name string, fn DirectMethodHandler) error
+	UnregisterMethod(name string)
+	UpdateTwinState(ctx context.Context, s TwinState) (int, error)
+	RetrieveTwinState(ctx context.Context) (desired, reported TwinState, err error)
+	SubscribeTwinUpdates(ctx context.Context) (*TwinStateSub, error)
+	UnsubscribeTwinUpdates(sub *TwinStateSub)
+	SendEvent(ctx context.Context, payload []byte, opts ...SendOption) error
+	UploadFile(ctx context.Context, blobName string, file io.Reader, size int64) error
+	Close() error
+}
+
 // Client is iothub device client.
-type Client struct {
+type deviceClient struct {
 	creds transport.Credentials
 	tr    transport.Transport
 
@@ -125,7 +144,7 @@ type DirectMethodHandler func(payload map[string]interface{}) (
 )
 
 // DeviceID returns iothub device id.
-func (c *Client) DeviceID() string {
+func (c *deviceClient) DeviceID() string {
 	return c.creds.GetDeviceID()
 }
 
@@ -133,7 +152,7 @@ func (c *Client) DeviceID() string {
 // will block until this function finishes with no error so it's clien's
 // responsibility to connect in the background by running it in a goroutine
 // and control other method invocations or call in in a synchronous way.
-func (c *Client) Connect(ctx context.Context) error {
+func (c *deviceClient) Connect(ctx context.Context) error {
 	c.mu.Lock()
 	select {
 	case <-c.ready:
@@ -153,7 +172,7 @@ func (c *Client) Connect(ctx context.Context) error {
 // ErrClosed the client is already closed.
 var ErrClosed = errors.New("closed")
 
-func (c *Client) checkConnection(ctx context.Context) error {
+func (c *deviceClient) checkConnection(ctx context.Context) error {
 	select {
 	case <-c.ready:
 		return nil
@@ -165,7 +184,7 @@ func (c *Client) checkConnection(ctx context.Context) error {
 }
 
 // SubscribeEvents subscribes to cloud-to-device events and returns a subscription struct.
-func (c *Client) SubscribeEvents(ctx context.Context) (*EventSub, error) {
+func (c *deviceClient) SubscribeEvents(ctx context.Context) (*EventSub, error) {
 	if err := c.checkConnection(ctx); err != nil {
 		return nil, err
 	}
@@ -178,7 +197,7 @@ func (c *Client) SubscribeEvents(ctx context.Context) (*EventSub, error) {
 }
 
 // UnsubscribeEvents makes the given subscription to stop receiving messages.
-func (c *Client) UnsubscribeEvents(sub *EventSub) {
+func (c *deviceClient) UnsubscribeEvents(sub *EventSub) {
 	c.evMux.unsub(sub)
 }
 
@@ -186,7 +205,7 @@ func (c *Client) UnsubscribeEvents(sub *EventSub) {
 // returns an error when method is already registered.
 // If f returns an error and empty body its error string
 // used as value of the error attribute in the result json.
-func (c *Client) RegisterMethod(ctx context.Context, name string, fn DirectMethodHandler) error {
+func (c *deviceClient) RegisterMethod(ctx context.Context, name string, fn DirectMethodHandler) error {
 	if err := c.checkConnection(ctx); err != nil {
 		return err
 	}
@@ -202,7 +221,7 @@ func (c *Client) RegisterMethod(ctx context.Context, name string, fn DirectMetho
 }
 
 // UnregisterMethod unregisters the named method.
-func (c *Client) UnregisterMethod(name string) {
+func (c *deviceClient) UnregisterMethod(name string) {
 	c.dmMux.remove(name)
 }
 
@@ -216,7 +235,7 @@ func (s TwinState) Version() int {
 }
 
 // RetrieveTwinState returns desired and reported twin device states.
-func (c *Client) RetrieveTwinState(ctx context.Context) (desired, reported TwinState, err error) {
+func (c *deviceClient) RetrieveTwinState(ctx context.Context) (desired, reported TwinState, err error) {
 	if err := c.checkConnection(ctx); err != nil {
 		return nil, nil, err
 	}
@@ -236,7 +255,7 @@ func (c *Client) RetrieveTwinState(ctx context.Context) (desired, reported TwinS
 
 // UpdateTwinState updates twin device's state and returns new version.
 // To remove any attribute set its value to nil.
-func (c *Client) UpdateTwinState(ctx context.Context, s TwinState) (int, error) {
+func (c *deviceClient) UpdateTwinState(ctx context.Context, s TwinState) (int, error) {
 	if err := c.checkConnection(ctx); err != nil {
 		return 0, err
 	}
@@ -248,7 +267,7 @@ func (c *Client) UpdateTwinState(ctx context.Context, s TwinState) (int, error) 
 }
 
 // SubscribeTwinUpdates registers fn as a desired state changes handler.
-func (c *Client) SubscribeTwinUpdates(ctx context.Context) (*TwinStateSub, error) {
+func (c *deviceClient) SubscribeTwinUpdates(ctx context.Context) (*TwinStateSub, error) {
 	if err := c.checkConnection(ctx); err != nil {
 		return nil, err
 	}
@@ -261,7 +280,7 @@ func (c *Client) SubscribeTwinUpdates(ctx context.Context) (*TwinStateSub, error
 }
 
 // UnsubscribeTwinUpdates unsubscribes the given handler from twin state updates.
-func (c *Client) UnsubscribeTwinUpdates(sub *TwinStateSub) {
+func (c *deviceClient) UnsubscribeTwinUpdates(sub *TwinStateSub) {
 	c.tsMux.unsub(sub)
 }
 
@@ -336,7 +355,7 @@ func WithSendCreationTime(t time.Time) SendOption {
 
 // SendEvent sends a device-to-cloud message.
 // Panics when event is nil.
-func (c *Client) SendEvent(ctx context.Context, payload []byte, opts ...SendOption) error {
+func (c *deviceClient) SendEvent(ctx context.Context, payload []byte, opts ...SendOption) error {
 	if err := c.checkConnection(ctx); err != nil {
 		return err
 	}
@@ -354,7 +373,7 @@ func (c *Client) SendEvent(ctx context.Context, payload []byte, opts ...SendOpti
 }
 
 // Close closes transport connection.
-func (c *Client) Close() error {
+func (c *deviceClient) Close() error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	select {
@@ -368,7 +387,7 @@ func (c *Client) Close() error {
 	}
 }
 
-func (c *Client) UploadFile(ctx context.Context, blobName string, file io.Reader, size int64) error {
+func (c *deviceClient) UploadFile(ctx context.Context, blobName string, file io.Reader, size int64) error {
 	if err := c.checkConnection(ctx); err != nil {
 		return err
 	}

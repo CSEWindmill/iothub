@@ -70,7 +70,7 @@ func newModule(t *testing.T, c *iotservice.Client, deviceID string) *iotservice.
 	return module
 }
 
-func newModuleClient(t *testing.T, sc *iotservice.Client) *ModuleClient {
+func newModuleClient(t *testing.T, sc *iotservice.Client) ModuleClient {
 	t.Helper()
 
 	device := newDevice(t, sc)
@@ -108,8 +108,8 @@ func TestSubscribeTwinUpdates(t *testing.T) {
 	}
 
 	twin, err := sc.UpdateModuleTwin(context.Background(), &iotservice.ModuleTwin{
-		DeviceID: mc.creds.GetDeviceID(),
-		ModuleID: mc.creds.GetModuleID(),
+		DeviceID: mc.DeviceID(),
+		ModuleID: mc.ModuleID(),
 		Properties: &iotservice.Properties{
 			Desired: map[string]interface{}{
 				"hw": "1.12",
