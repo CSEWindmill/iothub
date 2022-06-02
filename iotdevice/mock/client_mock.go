@@ -10,6 +10,7 @@ import (
 	reflect "reflect"
 
 	iotdevice "github.com/amenzhinsky/iothub/iotdevice"
+	iotservice "github.com/amenzhinsky/iothub/iotservice"
 	gomock "github.com/golang/mock/gomock"
 )
 
@@ -64,6 +65,35 @@ func (mr *MockClientMockRecorder) Connect(ctx interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Connect", reflect.TypeOf((*MockClient)(nil).Connect), ctx)
 }
 
+// CreateModule mocks base method.
+func (m_2 *MockClient) CreateModule(ctx context.Context, m *iotservice.Module) (*iotservice.Module, error) {
+	m_2.ctrl.T.Helper()
+	ret := m_2.ctrl.Call(m_2, "CreateModule", ctx, m)
+	ret0, _ := ret[0].(*iotservice.Module)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreateModule indicates an expected call of CreateModule.
+func (mr *MockClientMockRecorder) CreateModule(ctx, m interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateModule", reflect.TypeOf((*MockClient)(nil).CreateModule), ctx, m)
+}
+
+// DeleteModule mocks base method.
+func (m_2 *MockClient) DeleteModule(ctx context.Context, m *iotservice.Module) error {
+	m_2.ctrl.T.Helper()
+	ret := m_2.ctrl.Call(m_2, "DeleteModule", ctx, m)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteModule indicates an expected call of DeleteModule.
+func (mr *MockClientMockRecorder) DeleteModule(ctx, m interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteModule", reflect.TypeOf((*MockClient)(nil).DeleteModule), ctx, m)
+}
+
 // DeviceID mocks base method.
 func (m *MockClient) DeviceID() string {
 	m.ctrl.T.Helper()
@@ -76,6 +106,51 @@ func (m *MockClient) DeviceID() string {
 func (mr *MockClientMockRecorder) DeviceID() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeviceID", reflect.TypeOf((*MockClient)(nil).DeviceID))
+}
+
+// GetModule mocks base method.
+func (m *MockClient) GetModule(ctx context.Context, moduleID string) (*iotservice.Module, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetModule", ctx, moduleID)
+	ret0, _ := ret[0].(*iotservice.Module)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetModule indicates an expected call of GetModule.
+func (mr *MockClientMockRecorder) GetModule(ctx, moduleID interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetModule", reflect.TypeOf((*MockClient)(nil).GetModule), ctx, moduleID)
+}
+
+// ListModules mocks base method.
+func (m *MockClient) ListModules(ctx context.Context) ([]*iotservice.Module, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListModules", ctx)
+	ret0, _ := ret[0].([]*iotservice.Module)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListModules indicates an expected call of ListModules.
+func (mr *MockClientMockRecorder) ListModules(ctx interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListModules", reflect.TypeOf((*MockClient)(nil).ListModules), ctx)
+}
+
+// ModuleConnectionString mocks base method.
+func (m *MockClient) ModuleConnectionString(module *iotservice.Module, secondary bool) (string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ModuleConnectionString", module, secondary)
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ModuleConnectionString indicates an expected call of ModuleConnectionString.
+func (mr *MockClientMockRecorder) ModuleConnectionString(module, secondary interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ModuleConnectionString", reflect.TypeOf((*MockClient)(nil).ModuleConnectionString), module, secondary)
 }
 
 // RegisterMethod mocks base method.
@@ -191,6 +266,21 @@ func (m *MockClient) UnsubscribeTwinUpdates(sub *iotdevice.TwinStateSub) {
 func (mr *MockClientMockRecorder) UnsubscribeTwinUpdates(sub interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UnsubscribeTwinUpdates", reflect.TypeOf((*MockClient)(nil).UnsubscribeTwinUpdates), sub)
+}
+
+// UpdateModule mocks base method.
+func (m_2 *MockClient) UpdateModule(ctx context.Context, m *iotservice.Module) (*iotservice.Module, error) {
+	m_2.ctrl.T.Helper()
+	ret := m_2.ctrl.Call(m_2, "UpdateModule", ctx, m)
+	ret0, _ := ret[0].(*iotservice.Module)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// UpdateModule indicates an expected call of UpdateModule.
+func (mr *MockClientMockRecorder) UpdateModule(ctx, m interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateModule", reflect.TypeOf((*MockClient)(nil).UpdateModule), ctx, m)
 }
 
 // UpdateTwinState mocks base method.
