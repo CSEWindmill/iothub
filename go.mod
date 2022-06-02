@@ -5,6 +5,7 @@ go 1.17
 require (
 	github.com/Azure/go-amqp v0.17.0
 	github.com/eclipse/paho.mqtt.golang v1.3.5
+	github.com/golang/mock v1.6.0
 )
 
 require (
