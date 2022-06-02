@@ -1,3 +1,6 @@
+// Mock generation command:
+// mockgen -source=./iotdevice/client.go -destination=./iotdevice/mock/client_mock.go -package=mock
+
 package iotdevice
 
 import (
@@ -16,8 +19,6 @@ import (
 	"github.com/amenzhinsky/iothub/iotdevice/transport"
 	"github.com/amenzhinsky/iothub/logger"
 )
-
-// mockgen -source=./iotdevice/client.go -destination=./iotdevice/mock/client_mock.go -package=mock
 
 // ClientOption is a client configuration option.
 type ClientOption func(c *deviceClient)
