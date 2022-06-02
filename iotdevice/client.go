@@ -120,6 +120,12 @@ type Client interface {
 	UnsubscribeTwinUpdates(sub *TwinStateSub)
 	SendEvent(ctx context.Context, payload []byte, opts ...SendOption) error
 	UploadFile(ctx context.Context, blobName string, file io.Reader, size int64) error
+	ListModules(ctx context.Context) ([]*iotservice.Module, error)
+	CreateModule(ctx context.Context, m *iotservice.Module) (*iotservice.Module, error)
+	GetModule(ctx context.Context, moduleID string) (*iotservice.Module, error)
+	UpdateModule(ctx context.Context, m *iotservice.Module) (*iotservice.Module, error)
+	DeleteModule(ctx context.Context, m *iotservice.Module) error
+	ModuleConnectionString(module *iotservice.Module, secondary bool) (string, error)
 	Close() error
 }
 
@@ -412,7 +418,7 @@ func (c *deviceClient) UploadFile(ctx context.Context, blobName string, file io.
 }
 
 // ListModules list all the registered modules on the device.
-func (c *Client) ListModules(ctx context.Context) ([]*iotservice.Module, error) {
+func (c *deviceClient) ListModules(ctx context.Context) ([]*iotservice.Module, error) {
 	if err := c.checkConnection(ctx); err != nil {
 		return nil, err
 	}
@@ -421,7 +427,7 @@ func (c *Client) ListModules(ctx context.Context) ([]*iotservice.Module, error) 
 }
 
 // CreateModule Creates adds the given module to the registry.
-func (c *Client) CreateModule(ctx context.Context, m *iotservice.Module) (*iotservice.Module, error) {
+func (c *deviceClient) CreateModule(ctx context.Context, m *iotservice.Module) (*iotservice.Module, error) {
 	if err := c.checkConnection(ctx); err != nil {
 		return nil, err
 	}
@@ -430,7 +436,7 @@ func (c *Client) CreateModule(ctx context.Context, m *iotservice.Module) (*iotse
 }
 
 // GetModule retrieves the named module.
-func (c *Client) GetModule(ctx context.Context, moduleID string) (*iotservice.Module, error) {
+func (c *deviceClient) GetModule(ctx context.Context, moduleID string) (*iotservice.Module, error) {
 	if err := c.checkConnection(ctx); err != nil {
 		return nil, err
 	}
@@ -439,7 +445,7 @@ func (c *Client) GetModule(ctx context.Context, moduleID string) (*iotservice.Mo
 }
 
 // UpdateModule updates the given module.
-func (c *Client) UpdateModule(ctx context.Context, m *iotservice.Module) (*iotservice.Module, error) {
+func (c *deviceClient) UpdateModule(ctx context.Context, m *iotservice.Module) (*iotservice.Module, error) {
 	if err := c.checkConnection(ctx); err != nil {
 		return nil, err
 	}
@@ -448,7 +454,7 @@ func (c *Client) UpdateModule(ctx context.Context, m *iotservice.Module) (*iotse
 }
 
 // DeleteModule removes the named device module.
-func (c *Client) DeleteModule(ctx context.Context, m *iotservice.Module) error {
+func (c *deviceClient) DeleteModule(ctx context.Context, m *iotservice.Module) error {
 	if err := c.checkConnection(ctx); err != nil {
 		return err
 	}
@@ -467,7 +473,7 @@ func accessKey(auth *iotservice.Authentication, secondary bool) (string, error) 
 }
 
 // DeviceConnectionString builds a connection string for the given module.
-func (c *Client) ModuleConnectionString(module *iotservice.Module, secondary bool) (string, error) {
+func (c *deviceClient) ModuleConnectionString(module *iotservice.Module, secondary bool) (string, error) {
 	key, err := accessKey(module.Authentication, secondary)
 	if err != nil {
 		return "", err
